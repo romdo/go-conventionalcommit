@@ -6,6 +6,156 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func TestLine_Empty(t *testing.T) {
+	tests := []struct {
+		name string
+		line *Line
+		want bool
+	}{
+		{
+			name: "nil",
+			line: &Line{},
+			want: true,
+		},
+		{
+			name: "empty",
+			line: &Line{
+				Number:  1,
+				Content: []byte(""),
+				Break:   []byte{},
+			},
+			want: true,
+		},
+		{
+			name: "space only",
+			line: &Line{
+				Number:  1,
+				Content: []byte("  "),
+				Break:   []byte{},
+			},
+			want: false,
+		},
+		{
+			name: "tab only",
+			line: &Line{
+				Number:  1,
+				Content: []byte("\t\t"),
+				Break:   []byte{},
+			},
+			want: false,
+		},
+		{
+			name: "spaces and tabs",
+			line: &Line{
+				Number:  1,
+				Content: []byte(" \t "),
+				Break:   []byte{},
+			},
+			want: false,
+		},
+		{
+			name: "text",
+			line: &Line{
+				Number:  1,
+				Content: []byte("foobar"),
+				Break:   []byte{},
+			},
+			want: false,
+		},
+		{
+			name: "text with surrounding white space",
+			line: &Line{
+				Number:  1,
+				Content: []byte(" foobar  "),
+				Break:   []byte{},
+			},
+			want: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := tt.line.Empty()
+
+			assert.Equal(t, tt.want, got)
+		})
+	}
+}
+
+func TestLine_Blank(t *testing.T) {
+	tests := []struct {
+		name string
+		line *Line
+		want bool
+	}{
+		{
+			name: "nil",
+			line: &Line{},
+			want: true,
+		},
+		{
+			name: "empty",
+			line: &Line{
+				Number:  1,
+				Content: []byte(""),
+				Break:   []byte{},
+			},
+			want: true,
+		},
+		{
+			name: "space only",
+			line: &Line{
+				Number:  1,
+				Content: []byte("  "),
+				Break:   []byte{},
+			},
+			want: true,
+		},
+		{
+			name: "tab only",
+			line: &Line{
+				Number:  1,
+				Content: []byte("\t\t"),
+				Break:   []byte{},
+			},
+			want: true,
+		},
+		{
+			name: "spaces and tabs",
+			line: &Line{
+				Number:  1,
+				Content: []byte(" \t "),
+				Break:   []byte{},
+			},
+			want: true,
+		},
+		{
+			name: "text",
+			line: &Line{
+				Number:  1,
+				Content: []byte("foobar"),
+				Break:   []byte{},
+			},
+			want: false,
+		},
+		{
+			name: "text with surrounding white space",
+			line: &Line{
+				Number:  1,
+				Content: []byte(" foobar  "),
+				Break:   []byte{},
+			},
+			want: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := tt.line.Blank()
+
+			assert.Equal(t, tt.want, got)
+		})
+	}
+}
+
 func TestNewLines(t *testing.T) {
 	tests := []struct {
 		name    string
@@ -290,11 +440,67 @@ func TestNewLines(t *testing.T) {
 	}
 }
 
-var linesBytesTestCases = []struct {
-	name  string
-	lines Lines
-	want  []byte
+var linesTestCases = []struct {
+	name           string
+	lines          Lines
+	bytes          []byte
+	firstTextIndex int
+	lastTextIndex  int
 }{
+	{
+		name:           "no lines",
+		lines:          Lines{},
+		bytes:          []byte(""),
+		firstTextIndex: -1,
+		lastTextIndex:  -1,
+	},
+	{
+		name: "empty line",
+		lines: Lines{
+			{
+				Number:  1,
+				Content: []byte(""),
+			},
+		},
+		bytes:          []byte(""),
+		firstTextIndex: -1,
+		lastTextIndex:  -1,
+	},
+	{
+		name: "whitespace line",
+		lines: Lines{
+			{
+				Number:  1,
+				Content: []byte("  "),
+			},
+		},
+		bytes:          []byte("  "),
+		firstTextIndex: -1,
+		lastTextIndex:  -1,
+	},
+	{
+		name: "multiple whitespace lines",
+		lines: Lines{
+			{
+				Number:  1,
+				Content: []byte("  "),
+				Break:   []byte("\n"),
+			},
+			{
+				Number:  2,
+				Content: []byte("\t"),
+				Break:   []byte("\n"),
+			},
+			{
+				Number:  3,
+				Content: []byte("   "),
+				Break:   []byte{},
+			},
+		},
+		bytes:          []byte("  \n\t\n   "),
+		firstTextIndex: -1,
+		lastTextIndex:  -1,
+	},
 	{
 		name: "single line",
 		lines: Lines{
@@ -303,7 +509,9 @@ var linesBytesTestCases = []struct {
 				Content: []byte("hello world"),
 			},
 		},
-		want: []byte("hello world"),
+		bytes:          []byte("hello world"),
+		firstTextIndex: 0,
+		lastTextIndex:  0,
 	},
 	{
 		name: "single line with trailing LF",
@@ -319,7 +527,9 @@ var linesBytesTestCases = []struct {
 				Break:   []byte{},
 			},
 		},
-		want: []byte("hello world\n"),
+		bytes:          []byte("hello world\n"),
+		firstTextIndex: 0,
+		lastTextIndex:  0,
 	},
 	{
 		name: "single line with trailing CRLF",
@@ -335,7 +545,9 @@ var linesBytesTestCases = []struct {
 				Break:   []byte{},
 			},
 		},
-		want: []byte("hello world\r\n"),
+		bytes:          []byte("hello world\r\n"),
+		firstTextIndex: 0,
+		lastTextIndex:  0,
 	},
 	{
 		name: "single line with trailing CR",
@@ -351,39 +563,51 @@ var linesBytesTestCases = []struct {
 				Break:   []byte{},
 			},
 		},
-		want: []byte("hello world\r"),
+		bytes:          []byte("hello world\r"),
+		firstTextIndex: 0,
+		lastTextIndex:  0,
 	},
 	{
 		name: "multi-line separated by LF",
 		lines: Lines{
 			{
-				Number:  3,
-				Content: []byte("Aliquam feugiat tellus ut neque."),
-				Break:   []byte("\n"),
-			},
-			{
-				Number:  4,
-				Content: []byte("Sed bibendum."),
-				Break:   []byte("\n"),
-			},
-			{
-				Number:  5,
-				Content: []byte("Nullam libero mauris, consequat."),
-				Break:   []byte("\n"),
-			},
-			{
-				Number:  6,
+				Number:  1,
 				Content: []byte(""),
 				Break:   []byte("\n"),
 			},
 			{
-				Number:  7,
+				Number:  2,
+				Content: []byte("Aliquam feugiat tellus ut neque."),
+				Break:   []byte("\n"),
+			},
+			{
+				Number:  3,
+				Content: []byte("Sed bibendum."),
+				Break:   []byte("\n"),
+			},
+			{
+				Number:  4,
+				Content: []byte("Nullam libero mauris, consequat."),
+				Break:   []byte("\n"),
+			},
+			{
+				Number:  5,
+				Content: []byte(""),
+				Break:   []byte("\n"),
+			},
+			{
+				Number:  6,
 				Content: []byte("Integer placerat tristique nisl."),
 				Break:   []byte("\n"),
 			},
 			{
-				Number:  8,
+				Number:  7,
 				Content: []byte("Etiam vel neque nec dui bibendum."),
+				Break:   []byte("\n"),
+			},
+			{
+				Number:  8,
+				Content: []byte(""),
 				Break:   []byte("\n"),
 			},
 			{
@@ -393,22 +617,18 @@ var linesBytesTestCases = []struct {
 			},
 			{
 				Number:  10,
-				Content: []byte(""),
-				Break:   []byte("\n"),
-			},
-			{
-				Number:  11,
 				Content: []byte("Nullam libero mauris, dictum id, arcu."),
 				Break:   []byte("\n"),
 			},
 			{
-				Number:  12,
+				Number:  11,
 				Content: []byte(""),
 				Break:   []byte{},
 			},
 		},
-		want: []byte(
-			"Aliquam feugiat tellus ut neque.\n" +
+		bytes: []byte(
+			"\n" +
+				"Aliquam feugiat tellus ut neque.\n" +
 				"Sed bibendum.\n" +
 				"Nullam libero mauris, consequat.\n" +
 				"\n" +
@@ -418,38 +638,50 @@ var linesBytesTestCases = []struct {
 				"\n" +
 				"Nullam libero mauris, dictum id, arcu.\n",
 		),
+		firstTextIndex: 1,
+		lastTextIndex:  9,
 	},
 	{
 		name: "multi-line separated by CRLF",
 		lines: Lines{
 			{
-				Number:  3,
-				Content: []byte("Aliquam feugiat tellus ut neque."),
-				Break:   []byte("\r\n"),
-			},
-			{
-				Number:  4,
-				Content: []byte("Sed bibendum."),
-				Break:   []byte("\r\n"),
-			},
-			{
-				Number:  5,
-				Content: []byte("Nullam libero mauris, consequat."),
-				Break:   []byte("\r\n"),
-			},
-			{
-				Number:  6,
+				Number:  1,
 				Content: []byte(""),
 				Break:   []byte("\r\n"),
 			},
 			{
-				Number:  7,
+				Number:  2,
+				Content: []byte("Aliquam feugiat tellus ut neque."),
+				Break:   []byte("\r\n"),
+			},
+			{
+				Number:  3,
+				Content: []byte("Sed bibendum."),
+				Break:   []byte("\r\n"),
+			},
+			{
+				Number:  4,
+				Content: []byte("Nullam libero mauris, consequat."),
+				Break:   []byte("\r\n"),
+			},
+			{
+				Number:  5,
+				Content: []byte(""),
+				Break:   []byte("\r\n"),
+			},
+			{
+				Number:  6,
 				Content: []byte("Integer placerat tristique nisl."),
 				Break:   []byte("\r\n"),
 			},
 			{
-				Number:  8,
+				Number:  7,
 				Content: []byte("Etiam vel neque nec dui bibendum."),
+				Break:   []byte("\r\n"),
+			},
+			{
+				Number:  8,
+				Content: []byte(""),
 				Break:   []byte("\r\n"),
 			},
 			{
@@ -459,22 +691,18 @@ var linesBytesTestCases = []struct {
 			},
 			{
 				Number:  10,
-				Content: []byte(""),
-				Break:   []byte("\r\n"),
-			},
-			{
-				Number:  11,
 				Content: []byte("Nullam libero mauris, dictum id, arcu."),
 				Break:   []byte("\r\n"),
 			},
 			{
-				Number:  12,
+				Number:  11,
 				Content: []byte(""),
 				Break:   []byte{},
 			},
 		},
-		want: []byte(
-			"Aliquam feugiat tellus ut neque.\r\n" +
+		bytes: []byte(
+			"\r\n" +
+				"Aliquam feugiat tellus ut neque.\r\n" +
 				"Sed bibendum.\r\n" +
 				"Nullam libero mauris, consequat.\r\n" +
 				"\r\n" +
@@ -484,38 +712,50 @@ var linesBytesTestCases = []struct {
 				"\r\n" +
 				"Nullam libero mauris, dictum id, arcu.\r\n",
 		),
+		firstTextIndex: 1,
+		lastTextIndex:  9,
 	},
 	{
 		name: "multi-line separated by CR",
 		lines: Lines{
 			{
-				Number:  3,
-				Content: []byte("Aliquam feugiat tellus ut neque."),
-				Break:   []byte("\r"),
-			},
-			{
-				Number:  4,
-				Content: []byte("Sed bibendum."),
-				Break:   []byte("\r"),
-			},
-			{
-				Number:  5,
-				Content: []byte("Nullam libero mauris, consequat."),
-				Break:   []byte("\r"),
-			},
-			{
-				Number:  6,
+				Number:  1,
 				Content: []byte(""),
 				Break:   []byte("\r"),
 			},
 			{
-				Number:  7,
+				Number:  2,
+				Content: []byte("Aliquam feugiat tellus ut neque."),
+				Break:   []byte("\r"),
+			},
+			{
+				Number:  3,
+				Content: []byte("Sed bibendum."),
+				Break:   []byte("\r"),
+			},
+			{
+				Number:  4,
+				Content: []byte("Nullam libero mauris, consequat."),
+				Break:   []byte("\r"),
+			},
+			{
+				Number:  5,
+				Content: []byte(""),
+				Break:   []byte("\r"),
+			},
+			{
+				Number:  6,
 				Content: []byte("Integer placerat tristique nisl."),
 				Break:   []byte("\r"),
 			},
 			{
-				Number:  8,
+				Number:  7,
 				Content: []byte("Etiam vel neque nec dui bibendum."),
+				Break:   []byte("\r"),
+			},
+			{
+				Number:  8,
+				Content: []byte(""),
 				Break:   []byte("\r"),
 			},
 			{
@@ -525,22 +765,18 @@ var linesBytesTestCases = []struct {
 			},
 			{
 				Number:  10,
-				Content: []byte(""),
-				Break:   []byte("\r"),
-			},
-			{
-				Number:  11,
 				Content: []byte("Nullam libero mauris, dictum id, arcu."),
 				Break:   []byte("\r"),
 			},
 			{
-				Number:  12,
+				Number:  11,
 				Content: []byte(""),
 				Break:   []byte{},
 			},
 		},
-		want: []byte(
-			"Aliquam feugiat tellus ut neque.\r" +
+		bytes: []byte(
+			"\r" +
+				"Aliquam feugiat tellus ut neque.\r" +
 				"Sed bibendum.\r" +
 				"Nullam libero mauris, consequat.\r" +
 				"\r" +
@@ -550,21 +786,88 @@ var linesBytesTestCases = []struct {
 				"\r" +
 				"Nullam libero mauris, dictum id, arcu.\r",
 		),
+		firstTextIndex: 1,
+		lastTextIndex:  9,
 	},
 }
 
+func TestLines_FirstTextIndex(t *testing.T) {
+	for _, tt := range linesTestCases {
+		t.Run(tt.name, func(t *testing.T) {
+			got := tt.lines.FirstTextIndex()
+
+			assert.Equal(t, tt.firstTextIndex, got)
+		})
+	}
+}
+
+func BenchmarkLines_FirstTextIndex(b *testing.B) {
+	for _, tt := range linesTestCases {
+		b.Run(tt.name, func(b *testing.B) {
+			for n := 0; n < b.N; n++ {
+				_ = tt.lines.FirstTextIndex()
+			}
+		})
+	}
+}
+
+func TestLines_LastTextIndex(t *testing.T) {
+	for _, tt := range linesTestCases {
+		t.Run(tt.name, func(t *testing.T) {
+			got := tt.lines.LastTextIndex()
+
+			assert.Equal(t, tt.lastTextIndex, got)
+		})
+	}
+}
+
+func BenchmarkLines_LastTextIndex(b *testing.B) {
+	for _, tt := range linesTestCases {
+		b.Run(tt.name, func(b *testing.B) {
+			for n := 0; n < b.N; n++ {
+				_ = tt.lines.LastTextIndex()
+			}
+		})
+	}
+}
+
+func TestLines_Trim(t *testing.T) {
+	for _, tt := range linesTestCases {
+		t.Run(tt.name, func(t *testing.T) {
+			want := Lines{}
+			if tt.firstTextIndex != -1 {
+				want = tt.lines[tt.firstTextIndex : tt.lastTextIndex+1]
+			}
+
+			got := tt.lines.Trim()
+
+			assert.Equal(t, want, got)
+		})
+	}
+}
+
+func BenchmarkLines_Trim(b *testing.B) {
+	for _, tt := range linesTestCases {
+		b.Run(tt.name, func(b *testing.B) {
+			for n := 0; n < b.N; n++ {
+				_ = tt.lines.Trim()
+			}
+		})
+	}
+}
+
 func TestLines_Bytes(t *testing.T) {
-	for _, tt := range linesBytesTestCases {
+	for _, tt := range linesTestCases {
 		t.Run(tt.name, func(t *testing.T) {
 			got := tt.lines.Bytes()
 
-			assert.Equal(t, tt.want, got)
+			assert.Equal(t, tt.bytes, got)
 		})
 	}
 }
 
 func BenchmarkLines_Bytes(b *testing.B) {
-	for _, tt := range linesBytesTestCases {
+	for _, tt := range linesTestCases {
 		b.Run(tt.name, func(b *testing.B) {
 			for n := 0; n < b.N; n++ {
 				_ = tt.lines.Bytes()
@@ -574,17 +877,17 @@ func BenchmarkLines_Bytes(b *testing.B) {
 }
 
 func TestLines_String(t *testing.T) {
-	for _, tt := range linesBytesTestCases {
+	for _, tt := range linesTestCases {
 		t.Run(tt.name, func(t *testing.T) {
 			got := tt.lines.String()
 
-			assert.Equal(t, string(tt.want), got)
+			assert.Equal(t, string(tt.bytes), got)
 		})
 	}
 }
 
 func BenchmarkLines_String(b *testing.B) {
-	for _, tt := range linesBytesTestCases {
+	for _, tt := range linesTestCases {
 		b.Run(tt.name, func(b *testing.B) {
 			for n := 0; n < b.N; n++ {
 				_ = tt.lines.String()

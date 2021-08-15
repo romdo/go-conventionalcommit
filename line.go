@@ -1,5 +1,10 @@
 package conventionalcommit
 
+import (
+	"bytes"
+	"strings"
+)
+
 const (
 	lf = 10 // linefeed ("\n") character
 	cr = 13 // carriage return ("\r") character
@@ -20,6 +25,17 @@ type Line struct {
 	Break []byte
 }
 
+// Empty returns true if line content has a length of zero.
+func (s *Line) Empty() bool {
+	return len(s.Content) == 0
+}
+
+// Blank returns true if line content has a length of zero after leading and
+// trailing white space has been trimmed.
+func (s *Line) Blank() bool {
+	return len(bytes.TrimSpace(s.Content)) == 0
+}
+
 // Lines is a slice of *Line types with some helper methods attached.
 type Lines []*Line
 
@@ -28,8 +44,9 @@ type Lines []*Line
 // basis.
 func NewLines(content []byte) Lines {
 	r := Lines{}
+	cLen := len(content)
 
-	if len(content) == 0 {
+	if cLen == 0 {
 		return r
 	}
 
@@ -37,12 +54,13 @@ func NewLines(content []byte) Lines {
 	var breaks [][]int
 
 	// Locate each line break within content.
-	for i := 0; i < len(content); i++ {
-		if content[i] == lf {
+	for i := 0; i < cLen; i++ {
+		switch content[i] {
+		case lf:
 			breaks = append(breaks, []int{i, i + 1})
-		} else if content[i] == cr {
+		case cr:
 			b := []int{i, i + 1}
-			if i+1 < len(content) && content[i+1] == lf {
+			if i+1 < cLen && content[i+1] == lf {
 				b[1]++
 				i++
 			}
@@ -76,6 +94,45 @@ func NewLines(content []byte) Lines {
 	return r
 }
 
+// FirstTextIndex returns the line offset of the first line which contains any
+// non-whitespace characters.
+func (s Lines) FirstTextIndex() int {
+	for i, line := range s {
+		if !line.Blank() {
+			return i
+		}
+	}
+
+	return -1
+}
+
+// LastTextIndex returns the line offset of the last line which contains any
+// non-whitespace characters.
+func (s Lines) LastTextIndex() int {
+	for i := len(s) - 1; i >= 0; i-- {
+		if !s[i].Blank() {
+			return i
+		}
+	}
+
+	return -1
+}
+
+// Trim returns a new Lines instance where all leading and trailing whitespace
+// lines have been removed, based on index values from FirstTextIndex() and
+// LastTextIndex().
+//
+// If there are no lines with non-whitespace characters, a empty Lines type is
+// returned.
+func (s Lines) Trim() Lines {
+	start := s.FirstTextIndex()
+	if start == -1 {
+		return Lines{}
+	}
+
+	return s[start : s.LastTextIndex()+1]
+}
+
 // Bytes combines all Lines into a single byte slice, retaining the original
 // line break types for each line.
 func (s Lines) Bytes() []byte {
@@ -99,4 +156,13 @@ func (s Lines) Bytes() []byte {
 // break types for each line.
 func (s Lines) String() string {
 	return string(s.Bytes())
+}
+
+func (s Lines) Join(sep string) string {
+	r := make([]string, 0, len(s))
+	for _, line := range s {
+		r = append(r, string(line.Content))
+	}
+
+	return strings.Join(r, sep)
 }
