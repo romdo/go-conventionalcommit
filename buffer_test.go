@@ -994,6 +994,55 @@ func BenchmarkBuffer_Lines(b *testing.B) {
 	}
 }
 
+func TestBuffer_LinesRaw(t *testing.T) {
+	for _, tt := range bufferTestCases {
+		t.Run(tt.name, func(t *testing.T) {
+			want := tt.wantBuffer.lines[0:]
+
+			got := tt.wantBuffer.LinesRaw()
+
+			assert.Equal(t, want, got)
+		})
+	}
+}
+
+func TestBuffer_LineCount(t *testing.T) {
+	for _, tt := range bufferTestCases {
+		t.Run(tt.name, func(t *testing.T) {
+			want := tt.wantLines[1]
+
+			got := tt.wantBuffer.LineCount()
+
+			assert.Equal(t, want, got)
+		})
+	}
+}
+
+func BenchmarkBuffer_LineCount(b *testing.B) {
+	for _, tt := range bufferTestCases {
+		if tt.bytes == nil {
+			continue
+		}
+		b.Run(tt.name, func(b *testing.B) {
+			for n := 0; n < b.N; n++ {
+				_ = tt.wantBuffer.LineCount()
+			}
+		})
+	}
+}
+
+func TestBuffer_LineCountRaw(t *testing.T) {
+	for _, tt := range bufferTestCases {
+		t.Run(tt.name, func(t *testing.T) {
+			want := len(tt.wantBuffer.lines)
+
+			got := tt.wantBuffer.LineCountRaw()
+
+			assert.Equal(t, want, got)
+		})
+	}
+}
+
 func TestBuffer_Bytes(t *testing.T) {
 	for _, tt := range bufferTestCases {
 		if tt.bytes == nil {

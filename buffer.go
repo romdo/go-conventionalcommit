@@ -1,38 +1,5 @@
 package conventionalcommit
 
-import (
-	"regexp"
-)
-
-// footerToken will match against all variations of Conventional Commit footer
-// formats.
-//
-// Examples of valid footer tokens:
-//
-//  Approved-by: John Carter
-//  ReviewdBy: Noctis
-//  Fixes #49
-//  Reverts #SOL-42
-//  BREAKING CHANGE: Flux capacitor no longer exists.
-//  BREAKING-CHANGE: Time will flow backwads
-//
-// Examples of invalid footer tokens:
-//
-//  Approved-by:
-//  Approved-by:John Carter
-//  Approved by: John Carter
-//    ReviewdBy: Noctis
-//  Fixes#49
-//  Fixes #
-//  Fixes 49
-//  BREAKING CHANGE:Flux capacitor no longer exists.
-//  Breaking Change: Flux capacitor no longer exists.
-//  Breaking-Change: Time will flow backwads
-//
-var footerToken = regexp.MustCompile(
-	`^(?:([\w-]+)\s+(#.+)|([\w-]+|BREAKING[\s-]CHANGE):\s+(.+))$`,
-)
-
 // Buffer represents a commit message in a more structured form than a simple
 // string or byte slice. This makes it easier to process a message for the
 // purposes of extracting detailed information, linting, and formatting.
@@ -119,11 +86,11 @@ func NewBuffer(message []byte) *Buffer {
 		lastLen++
 	}
 
-	// If last paragraph starts with a Convention Commit footer token, it is the
-	// foot section, otherwise it is part of the body.
+	// If last paragraph starts with a Conventional Commit footer token, it is
+	// the foot section, otherwise it is part of the body.
 	if lastLen > 0 {
 		line := buf.lines[buf.lastLine-lastLen+1]
-		if footerToken.Match(line.Content) {
+		if FooterToken.Match(line.Content) {
 			buf.footLen = lastLen
 		}
 	}
@@ -176,12 +143,27 @@ func (s *Buffer) Lines() Lines {
 	return s.lines[s.firstLine : s.lastLine+1]
 }
 
+// LinesRaw returns all lines of the buffer including any blank lines at the
+// beginning and end of the buffer.
+func (s *Buffer) LinesRaw() Lines {
+	return s.lines
+}
+
+// LineCount returns number of lines in the buffer after discarding blank lines
+// from the beginning and end of the buffer. Effectively counting all lines from
+// the first to the last line which contain any non-whitespace characters.
 func (s *Buffer) LineCount() int {
 	if s.headLen == 0 {
 		return 0
 	}
 
 	return (s.lastLine + 1) - s.firstLine
+}
+
+// LineCountRaw returns the number of lines in the buffer including any blank
+// lines at the beginning and end of the buffer.
+func (s *Buffer) LineCountRaw() int {
+	return len(s.lines)
 }
 
 // Bytes renders the Buffer back into a byte slice, without any leading or

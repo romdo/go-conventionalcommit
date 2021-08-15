@@ -58,9 +58,9 @@ type Lines []*Line
 // basis.
 func NewLines(content []byte) Lines {
 	r := Lines{}
-	cLen := len(content)
+	length := len(content)
 
-	if cLen == 0 {
+	if length == 0 {
 		return r
 	}
 
@@ -68,13 +68,13 @@ func NewLines(content []byte) Lines {
 	var breaks [][]int
 
 	// Locate each line break within content.
-	for i := 0; i < cLen; i++ {
+	for i := 0; i < length; i++ {
 		switch content[i] {
 		case lf:
 			breaks = append(breaks, []int{i, i + 1})
 		case cr:
 			b := []int{i, i + 1}
-			if i+1 < cLen && content[i+1] == lf {
+			if i+1 < length && content[i+1] == lf {
 				b[1]++
 				i++
 			}
