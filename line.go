@@ -6,8 +6,10 @@ import (
 )
 
 const (
-	lf = 10 // linefeed ("\n") character
-	cr = 13 // carriage return ("\r") character
+	lf   = 10 // ASCII linefeed ("\n") character.
+	cr   = 13 // ASCII carriage return ("\r") character.
+	hash = 35 // ASCII hash ("#") character.
+
 )
 
 // Line represents a single line of text defined as; A continuous sequence of
@@ -34,6 +36,18 @@ func (s *Line) Empty() bool {
 // trailing white space has been trimmed.
 func (s *Line) Blank() bool {
 	return len(bytes.TrimSpace(s.Content)) == 0
+}
+
+// Comment returns true if line content is a commit comment, where the first
+// non-whitespace character in the line is a hash (#).
+func (s *Line) Comment() bool {
+	trimmed := bytes.TrimSpace(s.Content)
+
+	if len(trimmed) == 0 {
+		return false
+	}
+
+	return trimmed[0] == hash
 }
 
 // Lines is a slice of *Line types with some helper methods attached.

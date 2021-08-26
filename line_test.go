@@ -156,6 +156,99 @@ func TestLine_Blank(t *testing.T) {
 	}
 }
 
+func TestLine_Comment(t *testing.T) {
+	tests := []struct {
+		name string
+		line *Line
+		want bool
+	}{
+		{
+			name: "nil",
+			line: &Line{},
+			want: false,
+		},
+		{
+			name: "empty",
+			line: &Line{
+				Number:  1,
+				Content: []byte(""),
+				Break:   []byte{},
+			},
+			want: false,
+		},
+		{
+			name: "space only",
+			line: &Line{
+				Number:  1,
+				Content: []byte("  "),
+				Break:   []byte{},
+			},
+			want: false,
+		},
+		{
+			name: "tab only",
+			line: &Line{
+				Number:  1,
+				Content: []byte("\t\t"),
+				Break:   []byte{},
+			},
+			want: false,
+		},
+		{
+			name: "spaces and tabs",
+			line: &Line{
+				Number:  1,
+				Content: []byte(" \t "),
+				Break:   []byte{},
+			},
+			want: false,
+		},
+		{
+			name: "text",
+			line: &Line{
+				Number:  1,
+				Content: []byte("foobar"),
+				Break:   []byte{},
+			},
+			want: false,
+		},
+		{
+			name: "beings with hash",
+			line: &Line{
+				Number:  1,
+				Content: []byte("# foo bar"),
+				Break:   []byte{},
+			},
+			want: true,
+		},
+		{
+			name: "beings with hash after whitespace",
+			line: &Line{
+				Number:  1,
+				Content: []byte("  \t  # foo bar"),
+				Break:   []byte{},
+			},
+			want: true,
+		},
+		{
+			name: "has hash in middle of text",
+			line: &Line{
+				Number:  1,
+				Content: []byte("  foo # bar"),
+				Break:   []byte{},
+			},
+			want: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := tt.line.Comment()
+
+			assert.Equal(t, tt.want, got)
+		})
+	}
+}
+
 func TestNewLines(t *testing.T) {
 	tests := []struct {
 		name    string
